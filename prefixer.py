@@ -8,9 +8,9 @@ def rename_drum_samples(directory):
         'snare': ['snare', 'sd'],
         'clap': ['clap', 'cp'],
         'cym': ['ohat', 'open hat', 'oh', 'openhihat', 'cym', 'ride', 'crash', 'cx', 'cy'],
-        'hh': ['hh', 'hat', 'chat', 'closed hat', 'ch', 'closedhihat'],
+        'hh': ['hh', 'hat', 'chat', 'closed hat', 'ch', 'closedhihat', 'hihat'],
         'tom': ['tom', 'lt', 'mt', 'ht'],
-        'perc': ['perc', 'percussion', 'clave', 'claves', 'cl', 'maracas', 'ma', 'shaker', 'cowbell', 'cb', 'bongo', 'conga', 'timbale', 'woodblock', 'triangle', 'guiro', 'vibraslap', 'agogô', 'hc'],
+        'perc': ['perc', 'percussion', 'clave', 'claves', 'cl', 'maracas', 'ma', 'shaker', 'cowbell', 'cb', 'bongo', 'conga', 'timbale', 'woodblock', 'triangle', 'guiro', 'vibraslap', 'agogô', 'hc','snap'],
         'rim': ['rim', 'rimshot', 'rs'],
     }
     
@@ -28,9 +28,19 @@ def rename_drum_samples(directory):
     
     # Recursively process files in directory and subdirectories
     def process_directory(directory):
+        folder_decisions = {}
+        
         for root, _, files in os.walk(directory):
-            folder_name = os.path.basename(root).replace('.', '')  # Strip periods from folder name
-            append_folder = input(f"Would you like to append the folder name '{folder_name}' to each file? (y/N): ").strip().lower() == 'y'
+            relative_path = os.path.relpath(root, directory).strip(os.sep)
+            path_parts = relative_path.split(os.sep) if relative_path else []
+            append_parts = []
+            
+            for part in path_parts:
+                if part not in folder_decisions:
+                    user_input = input(f"Would you like to append the folder name '{part}' to each file? (y/N): ").strip().lower()
+                    folder_decisions[part] = user_input == 'y'
+                if folder_decisions[part]:
+                    append_parts.append(part.replace('.', ''))
             
             for filename in files:
                 if not any(filename.lower().endswith(ext) for ext in audio_extensions):
@@ -44,7 +54,8 @@ def rename_drum_samples(directory):
                 
                 if prefix and not filename.lower().startswith(tuple(p + "_" for p in drum_mappings.keys())):
                     new_filename = prefix + name
-                elif not prefix:  # Ask to prepend 'other_' if no match is found
+                elif not prefix and not filename.lower().startswith("other_"):
+                    # Ask to prepend 'other_' if no match is found, but only if it doesn't already have 'other_'
                     user_input = input(f"No drum mapping match for '{filename}'. Do you want to prefix it with 'other_'? (y/N): ").strip().lower()
                     if user_input == 'y':
                         new_filename = "other_" + name
@@ -53,8 +64,10 @@ def rename_drum_samples(directory):
                 else:
                     new_filename = name
                 
-                if append_folder and not name.endswith(f"_{folder_name}"):
-                    new_filename += f"_{folder_name}"
+                # Append selected folder names in correct order, avoiding duplicates
+                append_suffix = "_".join(append_parts)
+                if append_suffix and not new_filename.endswith(f"_{append_suffix}"):
+                    new_filename = f"{new_filename}_{append_suffix}"
                 
                 new_filename += ext
                 new_filepath = os.path.join(root, new_filename)
