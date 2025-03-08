@@ -1,3 +1,6 @@
+# This prepends drum samples filenames with their group - kick_, snare_, etc
+# It also optionally appends the folder name to the filename - kick_boom_foldername.wav
+
 import os
 import re
 
